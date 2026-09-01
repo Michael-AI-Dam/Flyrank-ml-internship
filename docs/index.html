@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Which Pages Are Worth Fixing First? CTR Opportunity Scoring on Real Search Data</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f9fafb;
+      color: #1f2937;
+      line-height: 1.7;
+    }
+    header {
+      background: #1e3a5f;
+      color: white;
+      padding: 3rem 1.5rem 2rem;
+      text-align: center;
+    }
+    header h1 {
+      font-size: clamp(1.4rem, 4vw, 2.2rem);
+      font-weight: 700;
+      line-height: 1.3;
+      max-width: 800px;
+      margin: 0 auto 1rem;
+    }
+    header p.meta {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-top: 0.5rem;
+    }
+    .abstract {
+      background: #e8f0fe;
+      border-left: 4px solid #2563eb;
+      max-width: 860px;
+      margin: 2rem auto;
+      padding: 1.5rem 2rem;
+      border-radius: 6px;
+    }
+    .abstract h2 {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #2563eb;
+      margin-bottom: 0.75rem;
+    }
+    .abstract p {
+      font-size: 0.97rem;
+      color: #1f2937;
+    }
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem 4rem;
+    }
+    section {
+      margin-bottom: 3rem;
+    }
+    h2.section-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #1e3a5f;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 0.4rem;
+      margin-bottom: 1.2rem;
+    }
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #374151;
+      margin: 1.2rem 0 0.5rem;
+    }
+    p { margin-bottom: 0.9rem; }
+    ul, ol {
+      margin: 0.5rem 0 1rem 1.4rem;
+    }
+    li { margin-bottom: 0.4rem; }
+    .stat-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin: 1.2rem 0;
+    }
+    .stat-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 1rem 1.4rem;
+      flex: 1 1 160px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .stat-card .number {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #2563eb;
+    }
+    .stat-card .label {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 0.2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    th {
+      background: #1e3a5f;
+      color: white;
+      padding: 0.6rem 0.8rem;
+      text-align: left;
+    }
+    td {
+      padding: 0.55rem 0.8rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    tr:nth-child(even) td { background: #f9fafb; }
+    .chart-wrap {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1.2rem 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .chart-wrap img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 4px;
+    }
+    .chart-caption {
+      font-size: 0.82rem;
+      color: #6b7280;
+      margin-top: 0.6rem;
+      text-align: center;
+    }
+    .callout {
+      background: #fefce8;
+      border-left: 4px solid #ca8a04;
+      padding: 1rem 1.2rem;
+      border-radius: 4px;
+      margin: 1rem 0;
+      font-size: 0.95rem;
+    }
+    .callout.blue {
+      background: #eff6ff;
+      border-color: #2563eb;
+    }
+    .callout.red {
+      background: #fef2f2;
+      border-color: #dc2626;
+    }
+    .reason-badge {
+      display: inline-block;
+      background: #2563eb;
+      color: white;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-family: monospace;
+      margin-right: 0.3rem;
+    }
+    .reason-badge.grey { background: #6b7280; }
+    .reason-badge.green { background: #16a34a; }
+    footer {
+      background: #1e3a5f;
+      color: #cbd5e1;
+      text-align: center;
+      padding: 2rem 1rem;
+      font-size: 0.85rem;
+    }
+    footer a { color: #93c5fd; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    .toc {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 1.2rem 1.5rem;
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+    }
+    .toc h3 { margin-top: 0; color: #1e3a5f; }
+    .toc ol { margin-left: 1.2rem; }
+    .toc li { margin-bottom: 0.3rem; }
+    .toc a { color: #2563eb; text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    @media (max-width: 600px) {
+      .stat-card .number { font-size: 1.4rem; }
+      th, td { padding: 0.4rem 0.5rem; font-size: 0.82rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Which Pages Are Worth Fixing First?<br>CTR Opportunity Scoring on Real Search Data</h1>
+  <p class="meta">FlyRank ML Internship Capstone &nbsp;·&nbsp; Michael Dam &nbsp;·&nbsp; September 2026</p>
+</header>
+
+<!-- ABSTRACT -->
+<div class="abstract">
+  <h2>Abstract</h2>
+  <p>
+    Which pages in a search portfolio are most worth reviewing for CTR improvement — and can a 
+    data-driven score identify them more reliably than a flat threshold rule? Using 30,000 
+    pseudonymized content pages from 32 clients with real Google Search Console data, we built 
+    a transparent opportunity score that ranks pages by the size of their CTR gap relative to 
+    position-tier peers, weighted by impression volume. A Logistic Regression model trained on 
+    indirect page features (word count, impressions, content age, position) achieved 
+    precision@50 of 0.96 on a grouped client split — 11 percentage points above the 0.845 base 
+    rate — without ever seeing CTR as an input. This playbook is intended as directional 
+    decision-support for content editors prioritizing title and metadata reviews, not as a 
+    production system or causal proof.
+  </p>
+</div>
+
+<main>
+
+  <!-- TABLE OF CONTENTS -->
+  <div class="toc">
+    <h3>Contents</h3>
+    <ol>
+      <li><a href="#introduction">Introduction / Problem</a></li>
+      <li><a href="#data">Data</a></li>
+      <li><a href="#methodology">Methodology</a></li>
+      <li><a href="#results">Results</a></li>
+      <li><a href="#limitations">Limitations</a></li>
+      <li><a href="#recommendations">Ranked Recommendations</a></li>
+      <li><a href="#reproducibility">Reproducibility</a></li>
+      <li><a href="#acknowledgments">Acknowledgments & Data Credit</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. INTRODUCTION -->
+  <section id="introduction">
+    <h2 class="section-title">1. Introduction / Problem</h2>
+    <p>
+      A content team at a mid-sized digital publisher has 30,000 pages indexed in Google Search. 
+      Their SEO tool flags anything with a CTR below 5% — which turns out to be most of the 
+      portfolio. The team has capacity to review 50 pages per sprint. Which 50?
+    </p>
+    <p>
+      The flat-threshold approach ignores position context. A page ranking at position 8 with 
+      a 4% CTR may be performing above expectation for that position, while a page at position 2 
+      with the same 4% CTR is badly underperforming. A flat rule can't tell these apart — it 
+      flags the wrong page and misses the real opportunity.
+    </p>
+    <p>
+      This work builds a position-aware opportunity score that compares each page's CTR against 
+      peers at the same search ranking, weighted by impression volume. The result is a ranked 
+      queue where the top entries represent pages where a metadata fix would produce the most 
+      additional clicks — not just pages that happen to fall below a fixed number.
+    </p>
+    <div class="callout blue">
+      <strong>The decision this supports:</strong> a content editor deciding which pages to 
+      prioritize for title and meta description review in the next sprint — starting with the 
+      pages where the expected click impact is highest.
+    </div>
+  </section>
+
+  <!-- 2. DATA -->
+  <section id="data">
+    <h2 class="section-title">2. Data</h2>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="number">30,000</div>
+        <div class="label">Total pages</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">28,795</div>
+        <div class="label">After position filter</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">32</div>
+        <div class="label">Pseudonymized clients</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">44</div>
+        <div class="label">Columns</div>
+      </div>
+    </div>
+
+    <p>
+      <strong>Source:</strong> FlyRank ML Internship starter dataset — 
+      <code>data/raw/content_refresh_anonymized.csv</code>. One row per pseudonymized 
+      content item, 32 clients, trailing-90-day metrics window. No client names, raw 
+      queries, or private URLs appear anywhere in this analysis.
+    </p>
+
+    <h3>Key columns used</h3>
+    <table>
+      <tr><th>Column</th><th>Description</th><th>Notes</th></tr>
+      <tr><td>impressions_last_30d</td><td>Search impressions, last 30 days</td><td>Median: 159, Max: 238,796 — heavy right tail</td></tr>
+      <tr><td>ctr</td><td>Click-through rate</td><td>Stored as % value: 0.08 = 0.08%, not 8%</td></tr>
+      <tr><td>avg_position</td><td>Average search ranking position</td><td>0 means "no data", not rank zero</td></tr>
+      <tr><td>position_tier</td><td>Tier label (top_3, page_1, striking, page_3_5, deep)</td><td>Used for peer-group comparison</td></tr>
+      <tr><td>word_count</td><td>Page word count</td><td>26.7% missing — filled with 0 for modeling</td></tr>
+      <tr><td>content_age_days</td><td>Days since publication</td><td>Range: 90–564 days</td></tr>
+      <tr><td>competition</td><td>Keyword competition level</td><td>0–1 scale</td></tr>
+      <tr><td>search_volume</td><td>Monthly search volume estimate</td><td>Median: 10</td></tr>
+    </table>
+
+    <h3>Excluded columns and why</h3>
+    <ul>
+      <li><strong>avg_position == 0</strong> — 1,205 rows removed. Zero means no position data, not rank zero per the data dictionary.</li>
+      <li><strong>trend_direction, trend_pct</strong> — excluded entirely. Both are derived from the label's own computation path — using them as features would create circular leakage confirmed in the Week 6 audit.</li>
+      <li><strong>content_id, client_id</strong> — pseudonymized IDs used for grouping and splitting only, never as model features.</li>
+    </ul>
+  </section>
+
+  <!-- 3. METHODOLOGY -->
+  <section id="methodology">
+    <h2 class="section-title">3. Methodology</h2>
+
+    <h3>Label definition</h3>
+    <p>
+      A page is labeled as an opportunity (1) if its CTR is below the average CTR of other 
+      pages in the same position tier. This is a proxy label — it captures pages underperforming 
+      relative to peers at the same ranking position, not an independently verified ground truth. 
+      Base rate: 82.6% positive across the full dataset.
+    </p>
+
+    <h3>Baseline rule</h3>
+    <p>
+      A transparent, hand-written score built in Week 4: 
+      <code>low_ctr × high_volume × ctr_gap × impressions</code>. A page only scores above 
+      zero when both conditions are true — CTR below position-tier peer average AND impressions 
+      above the dataset median (159). This rule is readable and explainable, and sets the bar 
+      the model must beat.
+    </p>
+    <div class="callout red">
+      <strong>Important honesty note:</strong> the baseline's <code>low_ctr</code> component 
+      reuses the exact rule that defines the label. Precision@K on the baseline is therefore 
+      circular — it scores perfectly not because the rule is genuinely predictive, but because 
+      it reuses the label's own formula. The model scores are the honest comparison.
+    </div>
+
+    <h3>Model</h3>
+    <p>
+      Logistic Regression and Random Forest, each trained on 6 features: 
+      <code>impressions_last_30d</code>, <code>avg_position</code>, <code>word_count</code>, 
+      <code>content_age_days</code>, <code>competition</code>, <code>search_volume</code>. 
+      Neither model ever sees <code>ctr</code> or <code>ctr_by_position_avg</code> as input. 
+      Random seed: 42.
+    </p>
+
+    <h3>Validation design</h3>
+    <p>
+      Grouped split by <code>client_id</code> — all pages from one client go entirely into 
+      train OR test, never split across both. This prevents the model from memorizing 
+      client-specific patterns. Train: 22,024 rows | Test: 6,771 rows | Client overlap: 0 
+      (confirmed).
+    </p>
+
+    <h3>Leakage checks</h3>
+    <ul>
+      <li><code>trend_direction</code> and <code>trend_pct</code> confirmed absent from features</li>
+      <li>Deliberate leak test run: adding <code>ctr_by_position_avg</code> did not cause score to jump toward 1.0 — feature set confirmed clean</li>
+      <li>Random split vs grouped split gap: 0.08 at K=100 — confirming grouped split is the honest evaluation</li>
+    </ul>
+  </section>
+
+  <!-- 4. RESULTS -->
+  <section id="results">
+    <h2 class="section-title">4. Results</h2>
+
+    <table>
+      <tr>
+        <th>K</th>
+        <th>Baseline p@K</th>
+        <th>Logistic Regression p@K</th>
+        <th>Random Forest p@K</th>
+        <th>Base Rate</th>
+      </tr>
+      <tr><td>20</td><td>1.00 ⚠️</td><td>1.00</td><td>1.00</td><td>0.845</td></tr>
+      <tr><td>50</td><td>1.00 ⚠️</td><td>0.96</td><td>0.96</td><td>0.845</td></tr>
+      <tr><td>100</td><td>1.00 ⚠️</td><td>0.95</td><td>0.91</td><td>0.845</td></tr>
+    </table>
+    <p style="font-size:0.82rem;color:#6b7280;">
+      ⚠️ Baseline precision@K is circular — see methodology note above. 
+      Model scores are the honest comparison.
+    </p>
+
+    <div class="chart-wrap">
+      <img src="../work/figures/precision_at_k.png"
+           alt="Precision at K comparison chart" />
+      <p class="chart-caption">
+        Both models beat the 0.845 base rate by ~11 points at K=50 on a grouped client split. 
+        Logistic Regression and Random Forest perform nearly identically — supporting 
+        "simplicity is a feature."
+      </p>
+    </div>
+
+    <div class="chart-wrap">
+      <img src="../work/figures/feature_importance.png"
+           alt="Feature importance chart" />
+      <p class="chart-caption">
+        Word count is the strongest driver (0.35), followed by impressions (0.20), 
+        content age (0.19), and avg position (0.16). No label-derived features appear — 
+        the pattern is explainable and passes the leakage sanity check.
+      </p>
+    </div>
+
+    <div class="chart-wrap">
+      <img src="../work/figures/score_distribution.png"
+           alt="Score distribution chart" />
+      <p class="chart-caption">
+        Distribution of opportunity scores across 11,612 flagged pages. Median score: 186. 
+        The heavy right tail confirms a small number of high-impression/high-gap pages 
+        dominate the top of the queue — start there.
+      </p>
+    </div>
+  </section>
+
+  <!-- 5. LIMITATIONS -->
+  <section id="limitations">
+    <h2 class="section-title">5. Limitations & Honest Framing</h2>
+
+    <div class="callout">
+      <strong>This is not causal.</strong> Observing low CTR relative to peers does not 
+      prove a title change will increase clicks. Every finding here is directional 
+      decision-support: "these pages look worth reviewing first, because the observed 
+      CTR gap is large and impression volume is high."
+    </div>
+
+    <ul>
+      <li>
+        <strong>Proxy label, not ground truth.</strong> 82.6% of pages are labeled positive — 
+        a highly imbalanced label that reflects how the proxy is defined, not a verified measure 
+        of "pages that would benefit from a metadata fix."
+      </li>
+      <li>
+        <strong>35.2% of pages have fewer than 50 impressions</strong> (10,122 of 28,795). 
+        CTR estimates are noisy at low volume. The queue already filters these via the 
+        high_volume condition, but the label itself is less reliable for these pages.
+      </li>
+      <li>
+        <strong>26.7% missing word_count</strong> (7,686 of 28,795). Missing values filled 
+        with 0 — a more careful approach would add a has_word_count flag feature.
+      </li>
+      <li>
+        <strong>Single snapshot.</strong> One trailing-90-day CSV with no date column. 
+        Scores go stale within 4-6 weeks without a data refresh.
+      </li>
+      <li>
+        <strong>Random split inflated precision@K by 0.08 at K=100</strong> versus the 
+        grouped split. The grouped numbers (0.91–0.96) are the ones that belong in any 
+        public claim.
+      </li>
+      <li>
+        <strong>Cross-client peer averages.</strong> Position-tier CTR averages are computed 
+        across all 32 clients. Pages in lower-CTR industries may appear underperforming 
+        simply because the portfolio-wide average doesn't reflect their industry baseline.
+      </li>
+    </ul>
+  </section>
+
+  <!-- 6. RECOMMENDATIONS -->
+  <section id="recommendations">
+    <h2 class="section-title">6. Ranked Recommendations</h2>
+
+    <p>
+      <strong>11,612 pages flagged for action</strong> out of 28,795. Every flagged page 
+      carries the <span class="reason-badge">low_ctr_high_volume</span> reason code.
+    </p>
+
+    <h3>Priority 1 — Review title and metadata</h3>
+    <p>
+      <span class="reason-badge">low_ctr_high_volume</span> — 11,612 pages. 
+      CTR below position-tier peer average AND impressions above dataset median (159). 
+      Start with the top 20–50 by score — measure results at 30 days before expanding.
+    </p>
+    <p>
+      The #1 page has CTR 0.03% vs peer average 2.76%, with 168,958 impressions last 30 days. 
+      Even a 0.5% CTR improvement would produce ~800 additional clicks per month from a page 
+      Google already shows widely.
+    </p>
+
+    <h3>Priority 2 — Monitor only</h3>
+    <p>
+      <span class="reason-badge green">high_volume_only</span> — 2,808 pages. 
+      High impressions but CTR is not below peer average. These pages are performing as 
+      expected. Watch for CTR drops but don't act yet.
+    </p>
+
+    <h3>Priority 3 — Deprioritize</h3>
+    <p>
+      <span class="reason-badge grey">low_ctr_only</span> — 12,159 pages. 
+      CTR below peers but impressions below median. Fixing CTR on a low-traffic page 
+      yields very few additional clicks. Address only after the high-volume queue is cleared.
+    </p>
+
+    <div class="callout red">
+      <strong>What should never be automated:</strong> title and metadata rewrites require 
+      human approval — they affect brand voice, legal claims, and user trust. Before acting, 
+      always verify the actual queries driving impressions in Search Console, check whether 
+      the page was recently refreshed, and confirm the content type is appropriate for 
+      a metadata fix (reference pages and tool pages structurally attract lower CTR).
+    </div>
+  </section>
+
+  <!-- 7. REPRODUCIBILITY -->
+  <section id="reproducibility">
+    <h2 class="section-title">7. Reproducibility</h2>
+    <p>All notebooks are committed to the repo and can be rerun in Colab with no local setup.</p>
+    <ul>
+      <li><strong>Week 1:</strong> w01_research_question.ipynb — lane framing, initial data exploration</li>
+      <li><strong>Week 2:</strong> w02_ml_task_framing.ipynb — task type, proxy target, success metric</li>
+      <li><strong>Week 3:</strong> w03_data_contract.ipynb — warehouse queries, grain checks, availability</li>
+      <li><strong>Week 4:</strong> w04_baseline_score.ipynb — rule baseline, ranked queue, leakage check</li>
+      <li><strong>Week 5:</strong> w05_model.ipynb — Logistic Regression + Random Forest, grouped split</li>
+      <li><strong>Week 6:</strong> w06_validation_audit.ipynb — before/after split, leakage audit, claim rewrite</li>
+      <li><strong>Week 7:</strong> w07_action_playbook.ipynb — ranked queue, no-go list, monitoring triggers</li>
+      <li><strong>Capstone:</strong> capstone.ipynb — full paper mirror, figure generation</li>
+    </ul>
+    <p>
+      <strong>Random seed:</strong> 42 (all models). 
+      <strong>Key library versions:</strong> scikit-learn, pandas, numpy, matplotlib 
+      (standard Colab versions, September 2026).
+    </p>
+    <p>
+      <strong>Repo:</strong> 
+      <a href="https://github.com/Michael-AI-Dam/Flyrank-ml-internship" target="_blank">
+        github.com/Michael-AI-Dam/Flyrank-ml-internship
+      </a>
+    </p>
+  </section>
+
+  <!-- 8. ACKNOWLEDGMENTS -->
+  <section id="acknowledgments">
+    <h2 class="section-title">8. Acknowledgments & Data Credit</h2>
+    <p>
+      Built on the <strong>FlyRank ML Internship dataset</strong> — pseudonymized real 
+      production search data from Google Search Console and Google Analytics 4, provided 
+      for educational use through the FlyRank ML Internship program.
+    </p>
+    <p>
+      Data source and internship program: 
+      <a href="https://flyrank.ai" target="_blank">https://flyrank.ai</a>
+    </p>
+    <p>
+      The starter dataset (30,000 rows) lives at 
+      <code>data/raw/content_refresh_anonymized.csv</code> in the repo. 
+      The full warehouse release (~79M rows) is hosted at 
+      <a href="https://huggingface.co/datasets/FlyRank/internship-warehouse" target="_blank">
+        FlyRank/internship-warehouse on Hugging Face
+      </a> (gated, instant approval).
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  <p>
+    Michael Dam &nbsp;·&nbsp; FlyRank ML Internship Capstone &nbsp;·&nbsp; September 2026
+  </p>
+  <p style="margin-top:0.5rem;">
+    Built on the FlyRank ML Internship dataset &nbsp;·&nbsp;
+    <a href="https://flyrank.ai" target="_blank">flyrank.ai</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/Michael-AI-Dam/Flyrank-ml-internship" target="_blank">
+      View repo on GitHub
+    </a>
+  </p>
+</footer>
+
+</body>
+</html>
